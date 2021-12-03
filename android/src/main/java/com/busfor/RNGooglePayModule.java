@@ -42,11 +42,13 @@ public class RNGooglePayModule extends ReactContextBaseJavaModule {
 
   private final ReactApplicationContext reactContext;
 
-  private PaymentsClient mPaymentsClient;
+  private PaymentsClient mPaymentsClient = null;
 
   private Promise requestPaymentPromise = null;
 
   private static final int LOAD_PAYMENT_DATA_REQUEST_CODE = 991;
+
+  private int environment;
 
   private final ActivityEventListener activityEventListener = new BaseActivityEventListener() {
     @Override
@@ -97,6 +99,7 @@ public class RNGooglePayModule extends ReactContextBaseJavaModule {
     if (activity == null) {
       return;
     }
+    this.environment = environment;
     mPaymentsClient = PaymentsUtil.createPaymentsClient(environment, activity);
   }
 
@@ -123,7 +126,7 @@ public class RNGooglePayModule extends ReactContextBaseJavaModule {
 
     // The call to isReadyToPay is asynchronous and returns a Task. We need to provide an
     // OnCompleteListener to be triggered when the result of the call is known.
-    Task<Boolean> task = mPaymentsClient.isReadyToPay(request);
+    Task<Boolean> task = getPaymentsClient(environment, activity).isReadyToPay(request);
     task.addOnCompleteListener(activity,
         new OnCompleteListener<Boolean>() {
           @Override
@@ -161,7 +164,7 @@ public class RNGooglePayModule extends ReactContextBaseJavaModule {
 
     PaymentDataRequest request = PaymentDataRequest.fromJson(paymentDataRequestJson.toString());
     if (request != null) {
-      AutoResolveHelper.resolveTask(mPaymentsClient.loadPaymentData(request), activity, LOAD_PAYMENT_DATA_REQUEST_CODE);
+      AutoResolveHelper.resolveTask(getPaymentsClient(environment, activity).loadPaymentData(request), activity, LOAD_PAYMENT_DATA_REQUEST_CODE);
     }
   }
 
@@ -187,6 +190,13 @@ public class RNGooglePayModule extends ReactContextBaseJavaModule {
       Log.e(TAG, "[GooglePay] handlePaymentSuccess error: " + e.toString());
       return;
     }
+  }
+
+  private PaymentsClient getPaymentsClient(int environment, @NonNull Activity activity) {
+    if (mPaymentsClient == null) {
+      mPaymentsClient = PaymentsUtil.createPaymentsClient(environment, activity);
+    }
+    return mPaymentsClient;
   }
 
   @Override
